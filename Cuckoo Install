@@ -2,15 +2,18 @@
 
 sudo apt update
 sudo apt upgrade
-sudo apt-get install python python-pip python-dev libffi-dev libssl-dev -y
-sudo apt-get install python-virtualenv python-setuptools -y
+
+# No python-pip found, however there is python3-pip that works and did the trick with m2crypto
+sudo apt-get install python python-pip python3-pip python-dev libffi-dev libssl-dev -y 
+
+sudo apt-get install virtualenv python-setuptools -y
 sudo apt-get install libjpeg-dev zlib1g-dev swig -y
 sudo apt-get install mongodb -y
 sudo apt-get install postgresql libpq-dev -y
 sudo apt install virtualbox -y
 sudo apt-get install tcpdump apparmor-utils -y
 
-
+# Optional
 sudo adduser --disabled-password --gecos "" cuckoo
 
 sudo groupadd pcap
@@ -21,7 +24,6 @@ sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
 getcap /usr/sbin/tcpdump
 sudo aa-disable /usr/sbin/tcpdump
 
-sudo apt-get install swig
 sudo pip install m2crypto
 
 sudo usermod -a -G vboxusers cuckoo
