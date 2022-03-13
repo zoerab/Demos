@@ -1,4 +1,4 @@
-
+# Preping the host OS (Ubuntu 20.04.4 LTS at the moment of the writing)
 
 sudo apt update
 sudo apt upgrade
@@ -17,6 +17,7 @@ sudo apt-get install tcpdump apparmor-utils -y
 sudo adduser --disabled-password --gecos "" cuckoo
 
 sudo groupadd pcap
+# Use your user (and not "cuckoo") in case you defined it in optional step on line 17
 sudo usermod -a -G pcap cuckoo
 sudo chgrp pcap /usr/sbin/tcpdump
 sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
@@ -24,14 +25,24 @@ sudo setcap cap_net_raw,cap_net_admin=eip /usr/sbin/tcpdump
 getcap /usr/sbin/tcpdump
 sudo aa-disable /usr/sbin/tcpdump
 
+# Testen with: m2crypto-0.38.0
 sudo pip install m2crypto
 
+# Use your user (and not "cuckoo") in case you defined it in optional step on line 17
 sudo usermod -a -G vboxusers cuckoo
 
+# OPTIONAL: Use your user (and not "cuckoo") in case you defined it in optional step on line 17
 sudo su cuckoo
 
 
------------------------------------------
+#######################################################################
+# Save it and make it executable "chmod +x cuckoo-setup-virtualenv.sh #
+#######################################################################
+
+##########################################
+# Script for preparation the environment #
+##########################################
+
 #!/usr/bin/env bash
 
 # NOTES: Run this script as: sudo -u <USERNAME> cuckoo-setup-virtualenv.sh
@@ -63,7 +74,9 @@ echo "export WORKON_HOME=~/.virtualenvs" >> ~/.bashrc
 
 echo "export PIP_VIRTUALENV_BASE=~/.virtualenvs" >> ~/.bashrc 
 
----------------------------------
+###########################################################
+###################### End of Script ######################
+###########################################################
 
 sudo -u *current user* cuckoo-setup-virtualenv.sh
 
@@ -75,7 +88,7 @@ pip install -U pip setuptools
 pip install -U cuckoo
 
 
-----------setup virtual machine--------
+#----------setup virtual machine--------
 sudo wget https://cuckoo.sh/win7ultimate.iso
 sudo mkdir /mnt/win7
 sudo chown cuckoo:cuckoo /mnt/win7/
@@ -93,28 +106,45 @@ vmcloak init --verbose --win7x64 win7x64base --cpus 2 --ramsize 2048
 
 vmcloak clone win7x64base win7x64cuckoo
 
+# Get a list of software
 vmcloak list deps
 
+# Install additional software into your sandbox
 vmcloak install win7x64cuckoo ie11
 
+# Snapshot count can be increased in case of multiple simulatnious VM runs
+# In case of multiple VM's IP address serves as a starting one where next VM get the next available IP (102, 103, etc...)
 vmcloak snapshot --count 1 win7x64cuckoo 192.168.56.101
 
 vmcloak list vms
 
---------------interacting with cuckoo--------
-cuckoo init
-cuckoo community
+#--------------interacting with cuckoo--------
 
-while read -r vm ip; do cuckoo machine --add $vm $ip; done < <(vmcloak list vms)
+# cuckoo init
+# cuckoo community
 
 sudo sysctl -w net.ipv4.conf.vboxnet0.forwarding=1
-sudo sysctl -w net.ipv4.conf.*your interface name*.forwarding=1
+# OR use your interface name in case you defined something else besides vboxnet0 on line: 103
+# sudo sysctl -w net.ipv4.conf.*your interface name*.forwarding=1
 
+# IMPORTAN #
+# You can place these line "net.ipv4.conf.*your interface name*.forwarding=1" inside "/etc/sysct.conf" for persistence
+
+# See documentation on different kinds of routing
 sudo iptables -t nat -A POSTROUTING -o *your interface name* -s 192.168.56.0/24 -j MASQUERADE
 sudo iptables -P FORWARD DROP
 sudo iptables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
 sudo iptables -A FORWARD -s 192.168.56.0/24 -j ACCEPT
 
-cuckoo rooter --sudo --group opensecure
+cuckoo init
+# Downloads latest community files/rules for detection
+cuckoo community
+
+cuckoo rooter --sudo --group analyst
+
+# For vbox settings edit the file: ~/.cuckoo/conf/virtualbox.conf
+
+
+while read -r vm ip; do cuckoo machine --add $vm $ip; done < <(vmcloak list vms)
 
 cuckoo web --host 127.0.0.1 --port 8080
